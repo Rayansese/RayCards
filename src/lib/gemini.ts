@@ -94,6 +94,10 @@ STRICT OUTPUT RULES:
 7. Do NOT generate duplicate cards or cards with empty strings.
 8. Focus ONLY on the most important, exam-relevant information. Completely ban and skip any promotional, copyright, or social media text from being transformed into flashcards.`;
 
+async function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 export async function generateFlashcards(
   pageText: string,
   pageNumber: number
@@ -116,19 +120,49 @@ export async function generateFlashcards(
 
   const prompt = `Page Number: ${pageNumber}\n\nPage Text:\n${pageText.trim()}`;
 
-  const result = await model.generateContent(prompt);
-  const raw = result.response.text();
+  const maxRetries = 5;
+  let lastError: Error | null = null;
 
-  let parsed: GeminiPageResponse;
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    throw new Error(`Gemini returned invalid JSON: ${raw.slice(0, 200)}`);
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const result = await model.generateContent(prompt);
+      const raw = result.response.text();
+
+      let parsed: GeminiPageResponse;
+      try {
+        parsed = JSON.parse(raw);
+      } catch {
+        throw new Error(`Gemini returned invalid JSON: ${raw.slice(0, 200)}`);
+      }
+
+      if (typeof parsed.page_number !== "number" || !Array.isArray(parsed.flashcards)) {
+        throw new Error(`Gemini response failed schema validation: ${JSON.stringify(parsed)}`);
+      }
+
+      return parsed;
+    } catch (error: any) {
+      lastError = error;
+      
+      // Check if it's a rate limit error (429) or similar
+      const isRateLimitError = 
+        error?.message?.includes('429') ||
+        error?.message?.includes('rate limit') ||
+        error?.message?.includes('quota') ||
+        error?.status === 429;
+
+      if (isRateLimitError && attempt < maxRetries - 1) {
+        const delayMs = Math.min(1000 * Math.pow(2, attempt), 30000); // Exponential backoff, max 30s
+        console.log(`Rate limit hit. Waiting ${delayMs}ms before retry ${attempt + 1}/${maxRetries}...`);
+        await sleep(delayMs);
+        continue;
+      }
+
+      // If it's not a rate limit error or we've exhausted retries, throw
+      if (!isRateLimitError || attempt === maxRetries - 1) {
+        throw error;
+      }
+    }
   }
 
-  if (typeof parsed.page_number !== "number" || !Array.isArray(parsed.flashcards)) {
-    throw new Error(`Gemini response failed schema validation: ${JSON.stringify(parsed)}`);
-  }
-
-  return parsed;
+  throw lastError || new Error("Failed to generate flashcards after retries");
 }

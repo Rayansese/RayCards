@@ -4,8 +4,8 @@ import { generateFlashcards } from "@/lib/gemini";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 function pagesRateLimitMax(): number {
-  const n = parseInt(process.env.RATE_LIMIT_PAGES_PER_HOUR ?? "30", 10);
-  return Number.isFinite(n) && n > 0 ? n : 30;
+  const n = parseInt(process.env.RATE_LIMIT_PAGES_PER_HOUR ?? "1000", 10);
+  return Number.isFinite(n) && n > 0 ? n : 1000;
 }
 
 export async function POST(
