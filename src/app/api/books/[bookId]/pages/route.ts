@@ -42,9 +42,19 @@ export async function POST(
       where: { bookId_pageNumber: { bookId, pageNumber } },
     });
     if (existing) {
+      const pageWithFlashcards = await prisma.page.findUnique({
+        where: { id: existing.id },
+        include: { flashcards: true },
+      });
       return NextResponse.json(
-        { error: `Page ${pageNumber} already exists. Delete it first to regenerate.` },
-        { status: 409 }
+        {
+          pageId: existing.id,
+          pageNumber: existing.pageNumber,
+          flashcardCount: pageWithFlashcards?.flashcards.length ?? 0,
+          flashcards: pageWithFlashcards?.flashcards ?? [],
+          skipped: true,
+        },
+        { status: 200 }
       );
     }
 

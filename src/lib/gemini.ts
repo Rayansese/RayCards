@@ -16,6 +16,42 @@ export function getGeminiModelId(): string {
   return process.env.GEMINI_MODEL?.trim() || DEFAULT_GEMINI_MODEL;
 }
 
+// Simple rate limiter for Gemini API (15 requests per minute)
+class GeminiRateLimiter {
+  private tokens: number = 15;
+  private lastRefill: number = Date.now();
+  private readonly maxTokens: number = 15;
+  private readonly refillInterval: number = 60000; // 1 minute
+
+  async waitForToken(): Promise<void> {
+    const now = Date.now();
+    const elapsed = now - this.lastRefill;
+    
+    // Refill tokens based on elapsed time
+    if (elapsed >= this.refillInterval) {
+      this.tokens = this.maxTokens;
+      this.lastRefill = now;
+    } else {
+      // Partial refill
+      const tokensToAdd = Math.floor((elapsed / this.refillInterval) * this.maxTokens);
+      this.tokens = Math.min(this.tokens + tokensToAdd, this.maxTokens);
+      this.lastRefill = now;
+    }
+
+    if (this.tokens <= 0) {
+      const waitTime = this.refillInterval - elapsed;
+      console.log(`Rate limit reached. Waiting ${waitTime}ms before next request...`);
+      await sleep(waitTime);
+      this.tokens = this.maxTokens;
+      this.lastRefill = Date.now();
+    }
+
+    this.tokens--;
+  }
+}
+
+const rateLimiter = new GeminiRateLimiter();
+
 
 const SYSTEM_PROMPT = 
 /*`You are an expert academic tutor specializing in creating high-quality study flashcards strictly from educational and scientific textbooks lessons.
@@ -102,6 +138,9 @@ export async function generateFlashcards(
   pageText: string,
   pageNumber: number
 ): Promise<GeminiPageResponse> {
+  // Wait for rate limiter before making API call
+  await rateLimiter.waitForToken();
+
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     throw new Error("GEMINI_API_KEY is not set in environment variables.");
@@ -143,22 +182,26 @@ export async function generateFlashcards(
     } catch (error: any) {
       lastError = error;
       
-      // Check if it's a rate limit error (429) or similar
-      const isRateLimitError = 
+      // Check if it's a retryable error (429 rate limit, 503 service unavailable, etc.)
+      const isRetryableError = 
         error?.message?.includes('429') ||
         error?.message?.includes('rate limit') ||
         error?.message?.includes('quota') ||
-        error?.status === 429;
+        error?.message?.includes('503') ||
+        error?.message?.includes('high demand') ||
+        error?.message?.includes('Service Unavailable') ||
+        error?.status === 429 ||
+        error?.status === 503;
 
-      if (isRateLimitError && attempt < maxRetries - 1) {
+      if (isRetryableError && attempt < maxRetries - 1) {
         const delayMs = Math.min(1000 * Math.pow(2, attempt), 30000); // Exponential backoff, max 30s
-        console.log(`Rate limit hit. Waiting ${delayMs}ms before retry ${attempt + 1}/${maxRetries}...`);
+        console.log(`Retryable error (${error?.status || 'unknown'}). Waiting ${delayMs}ms before retry ${attempt + 1}/${maxRetries}...`);
         await sleep(delayMs);
         continue;
       }
 
-      // If it's not a rate limit error or we've exhausted retries, throw
-      if (!isRateLimitError || attempt === maxRetries - 1) {
+      // If it's not a retryable error or we've exhausted retries, throw
+      if (!isRetryableError || attempt === maxRetries - 1) {
         throw error;
       }
     }
