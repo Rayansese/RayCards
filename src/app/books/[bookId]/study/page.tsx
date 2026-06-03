@@ -1,8 +1,7 @@
 "use client";
 
-import { Suspense, useEffect, useState, useRef, useCallback } from "react";
+import { Suspense, useEffect, useState, useCallback } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
-import { FlashcardArray } from "react-quizlet-flashcard";
 import Link from "next/link";
 
 interface StudyCard {
@@ -10,16 +9,6 @@ interface StudyCard {
   front: string;
   back: string;
   pageNumber: number;
-}
-
-// Fisher-Yates shuffle (client-side reshuffle)
-function shuffle<T>(arr: T[]): T[] {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
 }
 
 function StudyPageContent() {
@@ -32,13 +21,15 @@ function StudyPageContent() {
 
   const [cards, setCards] = useState<StudyCard[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isFlipped, setIsFlipped] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [bookTitle, setBookTitle] = useState("Study Session");
-  const controlRef = useRef<{ resetArray: () => void } | null>(null);
+  const [sessionComplete, setSessionComplete] = useState(false);
 
   const loadCards = useCallback(async () => {
-    setLoading(true); setError("");
+    setLoading(true);
+    setError("");
     try {
       const [studyRes, bookRes] = await Promise.all([
         fetch(`/api/books/${bookId}/study?from=${from}&to=${to}`),
@@ -52,6 +43,8 @@ function StudyPageContent() {
       }
       setCards(studyData.flashcards);
       setCurrentIndex(0);
+      setIsFlipped(false);
+      setSessionComplete(false);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unknown error");
     } finally {
@@ -59,33 +52,47 @@ function StudyPageContent() {
     }
   }, [bookId, from, to]);
 
-  useEffect(() => { loadCards(); }, [loadCards]);
+  useEffect(() => {
+    loadCards();
+  }, [loadCards]);
 
-  function handleReshuffle() {
-    setCards((prev) => shuffle(prev));
-    setCurrentIndex(0);
-    controlRef.current?.resetArray?.();
-  }
+  const handleNext = () => {
+    if (currentIndex < cards.length - 1) {
+      setCurrentIndex((prev) => prev + 1);
+      setIsFlipped(false);
+    } else {
+      setSessionComplete(true);
+    }
+  };
 
-  // Map cards to react-quizlet-flashcard format (v3 style with frontHTML / backHTML)
-  const deck = cards.map((card, i) => ({
-    id: i + 1,
-    frontHTML: <div className="flashcard-front">{card.front}</div>,
-    backHTML: (
-      <div className="flashcard-back flex flex-col items-center justify-center">
-        <div>{card.back}</div>
-        <div className="text-xs mt-4 opacity-50">Page {card.pageNumber}</div>
-      </div>
-    ),
-  }));
+  const handlePrev = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex((prev) => prev - 1);
+      setIsFlipped(false);
+    }
+  };
 
-  const progress = cards.length > 0 ? ((currentIndex + 1) / cards.length) * 100 : 0;
+  const handleReshuffle = async () => {
+    setIsFlipped(false);
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/books/${bookId}/study?from=${from}&to=${to}`);
+      const data = await res.json();
+      setCards(data.flashcards);
+      setCurrentIndex(0);
+      setSessionComplete(false);
+    } catch (e) {
+      setError("Failed to reshuffle cards.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <div className="w-12 h-12 border-2 border-white/10 border-t-violet-500 rounded-full animate-spin" />
-        <p style={{ color: "var(--text-muted)" }}>Loading flashcards…</p>
+        <p style={{ color: "var(--text-muted)" }}>Loading study session...</p>
       </div>
     );
   }
@@ -112,6 +119,23 @@ function StudyPageContent() {
       </div>
     );
   }
+
+  if (sessionComplete) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center animate-slideUp">
+        <div className="text-6xl mb-6">🎉</div>
+        <h2 className="text-3xl font-bold mb-2">Session Complete!</h2>
+        <p className="text-gray-400 mb-8">You've reviewed all {cards.length} flashcards in this range.</p>
+        <div className="flex gap-4">
+          <button className="btn btn-primary" onClick={handleReshuffle}>🔀 Study Again</button>
+          <Link href={`/books/${bookId}`} className="btn btn-secondary">← Back to Book</Link>
+        </div>
+      </div>
+    );
+  }
+
+  const currentCard = cards[currentIndex];
+  const progress = ((currentIndex + 1) / cards.length) * 100;
 
   return (
     <div className="flex flex-col gap-6 max-w-3xl mx-auto">
@@ -144,46 +168,60 @@ function StudyPageContent() {
       </div>
 
       {/* Flashcard */}
-      <div
-        className="rounded-2xl overflow-hidden"
-        style={{ border: "1px solid var(--border)" }}
-      >
-        <FlashcardArray
-          cards={deck}
-          controls={true}
-          showCount={false}
-          onCardChange={(_: unknown, index: number) => setCurrentIndex(index)}
-          FlashcardArrayStyle={{
-            background: "var(--bg-surface)",
-            width: "100%",
-            height: "340px",
-          }}
-          frontCardStyle={{
-            background: "linear-gradient(135deg, #13131d, #1a1a2e)",
-            border: "none",
-            borderRadius: "0",
-            color: "var(--text-primary)",
-          }}
-          backCardStyle={{
-            background: "linear-gradient(135deg, #0f1a2e, #12122a)",
-            border: "none",
-            borderRadius: "0",
-            color: "var(--text-secondary)",
-          }}
-          forwardRef={controlRef as any}
-        />
+      <div className="perspective-1000 relative h-[340px] w-full cursor-pointer group" onClick={() => setIsFlipped(!isFlipped)}>
+        <div
+          className={`relative w-full h-full transition-transform duration-500 transform-style-3d ${isFlipped ? 'rotate-y-180' : 'rotate-y-0'}`}
+          style={{ transformStyle: 'preserve-3d' }}
+        >
+          {/* Front */}
+          <div
+            className="absolute inset-0 backface-hidden flex flex-col items-center justify-center p-8 text-center rounded-2xl border border-white/10"
+            style={{
+              backfaceVisibility: 'hidden',
+              background: 'linear-gradient(135deg, #13131d, #1a1a2e)',
+              color: 'var(--text-primary)'
+            }}
+          >
+            <div className="text-xs uppercase tracking-widest opacity-50 mb-4">Question</div>
+            <div className="text-2xl font-medium leading-relaxed">{currentCard.front}</div>
+          </div>
+
+          {/* Back */}
+          <div
+            className="absolute inset-0 backface-hidden flex flex-col items-center justify-center p-8 text-center rounded-2xl border border-white/10"
+            style={{
+              backfaceVisibility: 'hidden',
+              transform: 'rotateY(180deg)',
+              background: 'linear-gradient(135deg, #0f1a2e, #12122a)',
+              color: 'var(--text-secondary)'
+            }}
+          >
+            <div className="text-xs uppercase tracking-widest opacity-50 mb-4">Answer</div>
+            <div className="text-xl leading-relaxed">{currentCard.back}</div>
+            <div className="text-xs mt-6 opacity-40">Page {currentCard.pageNumber}</div>
+          </div>
+        </div>
       </div>
 
       {/* Actions */}
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-          💡 Click the card to flip it
-        </p>
+      <div className="flex items-center justify-between gap-3">
         <div className="flex gap-3">
-          <button id="reshuffle-btn" className="btn btn-secondary" onClick={handleReshuffle}>
+          <button className="btn btn-secondary" onClick={handlePrev} disabled={currentIndex === 0}>
+            ← Previous
+          </button>
+          <button
+            className="btn btn-primary"
+            onClick={handleNext}
+            disabled={currentIndex === cards.length - 1}
+          >
+            {currentIndex === cards.length - 1 ? "Finish" : "Next →"}
+          </button>
+        </div>
+        <div className="flex gap-3">
+          <button className="btn btn-secondary" onClick={handleReshuffle}>
             🔀 Reshuffle
           </button>
-          <Link href={`/books/${bookId}`} id="back-to-book-btn" className="btn btn-secondary">
+          <Link href={`/books/${bookId}`} className="btn btn-secondary">
             ← Change Range
           </Link>
         </div>
