@@ -196,26 +196,21 @@ dialog::backdrop {
   transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ─── Flashcard overrides ────────────────────────────────── */
-.flashcard-front,
-.flashcard-back {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 32px;
-  text-align: center;
-  font-size: 1.1rem;
-  line-height: 1.7;
-  height: 100%;
+/* ─── Flashcard 3D Effects ────────────────────────────────── */
+.perspective-1000 {
+  perspective: 1000px;
 }
-.flashcard-front {
-  font-size: 1.3rem;
-  font-weight: 600;
-  color: var(--text-primary);
+.transform-style-3d {
+  transform-style: preserve-3d;
 }
-.flashcard-back {
-  font-size: 1rem;
-  color: var(--text-secondary);
+.backface-hidden {
+  backface-visibility: hidden;
+}
+.rotate-y-180 {
+  transform: rotateY(180deg);
+}
+.rotate-y-0 {
+  transform: rotateY(0deg);
 }
 
 /* ─── Animations ─────────────────────────────────────────── */

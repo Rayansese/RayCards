@@ -50,6 +50,7 @@ export async function GET(
       }))
     );
 
+    // Ensure session-unique randomization
     const shuffled = shuffle(allFlashcards);
 
     return NextResponse.json({
