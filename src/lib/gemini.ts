@@ -128,7 +128,10 @@ STRICT OUTPUT RULES:
 5. Each "back" must fully answer the front without referencing the page or any external platform.
 6. If the text contains formulas, include them using plain text notation (e.g., F = ma).
 7. Do NOT generate duplicate cards or cards with empty strings.
-8. Focus ONLY on the most important, exam-relevant information. Completely ban and skip any promotional, copyright, or social media text from being transformed into flashcards.`;
+8. Focus ONLY on the most important, exam-relevant information. Completely ban and skip any promotional, copyright, or social media text from being transformed into flashcards.
+9. use the language that the pdf or the photo use to make the flashcards , if its not in English then dont use English flashcards , use the orginal language 
+`;
+
 
 async function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
