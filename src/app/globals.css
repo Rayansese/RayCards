@@ -149,14 +149,15 @@ body {
 
 /* ─── Modal & Dialog ─────────────────────────────────────── */
 .modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.7);
+  position: fixed !important;
+  inset: 0 !important;
+  background: rgba(0, 0, 0, 0.7) !important;
   backdrop-filter: blur(8px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
+  -webkit-backdrop-filter: blur(8px);
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 9999 !important;
   animation: fadeIn 0.15s ease;
 }
 .modal {
@@ -164,11 +165,17 @@ body {
   border: 1px solid var(--border-hover);
   border-radius: var(--radius-xl);
   padding: 32px;
-  width: 100%;
+  width: 90%;
   max-width: 520px;
   animation: slideUp 0.2s ease;
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
+  position: relative;
+  z-index: 10000;
+  max-height: 90vh;
+  overflow-y: auto;
 }
+
+
 dialog.modal {
   border: none;
   outline: none;
@@ -179,6 +186,7 @@ dialog.modal {
 dialog::backdrop {
   background: rgba(0, 0, 0, 0.75);
   backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   animation: fadeIn 0.15s ease;
 }
 

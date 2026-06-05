@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 
 export interface Book {
@@ -19,6 +20,13 @@ function NewBookModal({ onClose, onCreated }: { onClose: () => void; onCreated: 
   const [subject, setSubject] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = ""; };
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -41,25 +49,48 @@ function NewBookModal({ onClose, onCreated }: { onClose: () => void; onCreated: 
     }
   }
 
-  return (
-    <dialog
-      open
-      className="modal relative overflow-hidden"
+  if (!mounted) return null;
+
+  return createPortal(
+    <div
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
       style={{
-        background: "rgba(17, 17, 24, 0.95)",
-        backdropFilter: "blur(16px)",
-        border: "1px solid rgba(124, 58, 237, 0.3)",
-        borderRadius: "var(--radius-xl)",
-        padding: "32px",
-        width: "90%",
-        maxWidth: "520px",
-        color: "white",
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: "rgba(0, 0, 0, 0.7)",
+        backdropFilter: "blur(8px)",
+        WebkitBackdropFilter: "blur(8px)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 9999,
+        animation: "fadeIn 0.15s ease",
       }}
     >
+      <div
+        style={{
+          background: "rgba(17, 17, 24, 0.95)",
+          backdropFilter: "blur(16px)",
+          border: "1px solid rgba(124, 58, 237, 0.3)",
+          borderRadius: "var(--radius-xl)",
+          padding: "32px",
+          width: "90%",
+          maxWidth: "520px",
+          color: "white",
+          position: "relative",
+          zIndex: 10000,
+          maxHeight: "90vh",
+          overflowY: "auto",
+          animation: "slideUp 0.2s ease",
+          boxShadow: "0 24px 80px rgba(0, 0, 0, 0.6)",
+        }}
+      >
       <h2 className="text-xl font-bold mb-4">Add a New Book</h2>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <input className="input rounded-lg p-3 w-full" placeholder="Book title *" value={title} onChange={(e) => setTitle(e.target.value)} autoFocus />
+        <input className="input rounded-lg p-3 w-full" placeholder="Book title *" value={title} onChange={(e) => setTitle(e.target.value)} />
         <div className="grid grid-cols-2 gap-3">
           <input className="input rounded-lg p-3 w-full" placeholder="Author" value={author} onChange={(e) => setAuthor(e.target.value)} />
           <input className="input rounded-lg p-3 w-full" placeholder="Subject" value={subject} onChange={(e) => setSubject(e.target.value)} />
@@ -70,9 +101,12 @@ function NewBookModal({ onClose, onCreated }: { onClose: () => void; onCreated: 
           <button type="submit" className="btn btn-primary" disabled={loading}>{loading ? "Creating…" : "Create"}</button>
         </div>
       </form>
-    </dialog>
+      </div>
+    </div>,
+    document.body
   );
 }
+
 
 function BookCard({ book, onDelete }: { book: Book; onDelete: (id: string) => void }) {
   async function handleDelete() {
