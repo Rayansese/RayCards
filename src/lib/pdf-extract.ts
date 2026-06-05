@@ -18,8 +18,7 @@ export async function extractTextFromPdf(buffer: Buffer): Promise<{
       .map((p) => ({
         pageNumber: p.num,
         text: p.text.trim(),
-      }))
-      .filter((p) => p.text.length >= MIN_PAGE_TEXT_LENGTH);
+      }));
 
     return { pages, totalPages: textResult.total };
   } finally {

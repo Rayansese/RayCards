@@ -29,8 +29,8 @@ export async function POST(
     if (typeof pageNumber !== "number" || pageNumber < 1) {
       return NextResponse.json({ error: "pageNumber must be a positive integer" }, { status: 400 });
     }
-    if (!rawText || typeof rawText !== "string" || rawText.trim().length < 20) {
-      return NextResponse.json({ error: "rawText must be at least 20 characters" }, { status: 400 });
+    if (rawText === undefined || typeof rawText !== "string") {
+      return NextResponse.json({ error: "rawText must be a string" }, { status: 400 });
     }
 
     const book = await prisma.book.findUnique({ where: { id: bookId } });
