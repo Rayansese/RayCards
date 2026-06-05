@@ -138,22 +138,22 @@ function StudyPageContent() {
   const progress = ((currentIndex + 1) / cards.length) * 100;
 
   return (
-    <div className="flex flex-col gap-6 max-w-3xl mx-auto">
+    <div className="flex flex-col gap-6 max-w-3xl mx-auto w-full overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <nav className="flex items-center gap-2 text-sm mb-1" style={{ color: "var(--text-muted)" }}>
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div className="min-w-0 flex-1">
+          <nav className="flex items-center gap-2 text-sm mb-1 flex-wrap" style={{ color: "var(--text-muted)" }}>
             <Link href="/" className="hover:text-white transition-colors">Home</Link>
             <span>/</span>
-            <Link href={`/books/${bookId}`} className="hover:text-white transition-colors">{bookTitle}</Link>
+            <Link href={`/books/${bookId}`} className="hover:text-white transition-colors truncate max-w-[120px] sm:max-w-none">{bookTitle}</Link>
             <span>/</span>
             <span>Study</span>
           </nav>
-          <h1 className="text-2xl font-bold">
+          <h1 className="text-xl sm:text-2xl font-bold">
             Pages {from}–{to !== "9999" ? to : "end"}
           </h1>
         </div>
-        <div className="badge badge-violet">{cards.length} cards</div>
+        <div className="badge badge-violet shrink-0">{cards.length} cards</div>
       </div>
 
       {/* Progress */}
@@ -168,27 +168,27 @@ function StudyPageContent() {
       </div>
 
       {/* Flashcard */}
-      <div className="perspective-1000 relative h-[340px] w-full cursor-pointer group" onClick={() => setIsFlipped(!isFlipped)}>
+      <div className="perspective-1000 relative h-[280px] sm:h-[340px] w-full cursor-pointer group" onClick={() => setIsFlipped(!isFlipped)}>
         <div
           className={`relative w-full h-full transition-transform duration-500 transform-style-3d ${isFlipped ? 'rotate-y-180' : 'rotate-y-0'}`}
           style={{ transformStyle: 'preserve-3d' }}
         >
           {/* Front */}
           <div
-            className="absolute inset-0 backface-hidden flex flex-col items-center justify-center p-8 text-center rounded-2xl border border-white/10"
+            className="absolute inset-0 backface-hidden flex flex-col items-center justify-center p-5 sm:p-8 text-center rounded-2xl border border-white/10 overflow-auto"
             style={{
               backfaceVisibility: 'hidden',
               background: 'linear-gradient(135deg, #13131d, #1a1a2e)',
               color: 'var(--text-primary)'
             }}
           >
-            <div className="text-xs uppercase tracking-widest opacity-50 mb-4">Question</div>
-            <div className="text-2xl font-medium leading-relaxed">{currentCard.front}</div>
+            <div className="text-xs uppercase tracking-widest opacity-50 mb-3 sm:mb-4">Question</div>
+            <div className="text-lg sm:text-2xl font-medium leading-relaxed break-words w-full">{currentCard.front}</div>
           </div>
 
           {/* Back */}
           <div
-            className="absolute inset-0 backface-hidden flex flex-col items-center justify-center p-8 text-center rounded-2xl border border-white/10"
+            className="absolute inset-0 backface-hidden flex flex-col items-center justify-center p-5 sm:p-8 text-center rounded-2xl border border-white/10 overflow-auto"
             style={{
               backfaceVisibility: 'hidden',
               transform: 'rotateY(180deg)',
@@ -196,33 +196,33 @@ function StudyPageContent() {
               color: 'var(--text-secondary)'
             }}
           >
-            <div className="text-xs uppercase tracking-widest opacity-50 mb-4">Answer</div>
-            <div className="text-xl leading-relaxed">{currentCard.back}</div>
-            <div className="text-xs mt-6 opacity-40">Page {currentCard.pageNumber}</div>
+            <div className="text-xs uppercase tracking-widest opacity-50 mb-3 sm:mb-4">Answer</div>
+            <div className="text-base sm:text-xl leading-relaxed break-words w-full">{currentCard.back}</div>
+            <div className="text-xs mt-4 sm:mt-6 opacity-40">Page {currentCard.pageNumber}</div>
           </div>
         </div>
       </div>
 
       {/* Actions */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex gap-3">
-          <button className="btn btn-secondary" onClick={handlePrev} disabled={currentIndex === 0}>
-            ← Previous
+      <div className="flex flex-wrap items-center justify-center sm:justify-between gap-2 sm:gap-3">
+        <div className="flex gap-2 sm:gap-3">
+          <button className="btn btn-secondary text-sm sm:text-base" onClick={handlePrev} disabled={currentIndex === 0}>
+            ← Prev
           </button>
           <button
-            className="btn btn-primary"
+            className="btn btn-primary text-sm sm:text-base"
             onClick={handleNext}
             disabled={currentIndex === cards.length - 1}
           >
             {currentIndex === cards.length - 1 ? "Finish" : "Next →"}
           </button>
         </div>
-        <div className="flex gap-3">
-          <button className="btn btn-secondary" onClick={handleReshuffle}>
+        <div className="flex gap-2 sm:gap-3">
+          <button className="btn btn-secondary text-sm sm:text-base" onClick={handleReshuffle}>
             🔀 Reshuffle
           </button>
-          <Link href={`/books/${bookId}`} className="btn btn-secondary">
-            ← Change Range
+          <Link href={`/books/${bookId}`} className="btn btn-secondary text-sm sm:text-base">
+            ← Range
           </Link>
         </div>
       </div>

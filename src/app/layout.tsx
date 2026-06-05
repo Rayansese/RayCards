@@ -28,9 +28,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={inter.variable}>
-      <body className="bg-[#0a0a0f] text-white antialiased min-h-screen">
+      <body className="bg-[#0a0a0f] text-white antialiased min-h-screen overflow-x-hidden">
         <header className="border-b border-white/5 bg-[#0a0a0f]/80 backdrop-blur-md sticky top-0 z-50">
-          <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
             <a href="/" className="flex items-center gap-3 group">
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-500/30 group-hover:shadow-violet-500/50 transition-shadow">
                 <span className="text-sm font-bold">R</span>
@@ -45,7 +45,7 @@ export default function RootLayout({
             </div>
           </div>
         </header>
-        <main className="max-w-6xl mx-auto px-6 py-10">{children}</main>
+        <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-10">{children}</main>
       </body>
     </html>
   );
